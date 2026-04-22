@@ -4,7 +4,7 @@ sqlalchemy==2.0.25
 pydantic==2.5.3
 pydantic[email]==2.5.3
 python-jose[cryptography]==3.3.0
-passlib[argon2]==1.7.4
+passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 deepface==0.0.89
 numpy==1.26.3

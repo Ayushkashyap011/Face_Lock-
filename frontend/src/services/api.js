@@ -2,9 +2,12 @@
 
 import axios from 'axios'
 
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const normalizedBaseUrl = rawBaseUrl.replace(/\/$/, '')
+
 // ── Base Client ─────────────────────────────────────────────────────────────
 const api = axios.create({
-  baseURL: '/api',          // Proxied by Vite to http://localhost:8000
+  baseURL: normalizedBaseUrl,
   timeout: 30000,           // 30s (face ML can be slow)
   headers: { 'Content-Type': 'application/json' },
 })

@@ -3,11 +3,15 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from passlib.exc import MissingBackendError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import get_db
 from models.user import User
+import logging
+
+logger = logging.getLogger(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -15,8 +19,9 @@ SECRET_KEY = "facelock-super-secret-key-change-in-production-2024"  # Use env va
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
-# Argon2 context for password hashing
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+# Bcrypt context for password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+fallback_pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 # HTTP Bearer token extractor
 bearer_scheme = HTTPBearer()
@@ -25,13 +30,21 @@ bearer_scheme = HTTPBearer()
 # ── Password Helpers ──────────────────────────────────────────────────────────
 
 def hash_password(plain_password: str) -> str:
-    """Hash a plain-text password using Argon2."""
-    return pwd_context.hash(plain_password)
+    """Hash a plain-text password using bcrypt."""
+    try:
+        return pwd_context.hash(plain_password)
+    except MissingBackendError:
+        logger.warning("bcrypt backend not available; using pbkdf2_sha256 fallback")
+        return fallback_pwd_context.hash(plain_password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain-text password against an Argon2 hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a plain-text password against a bcrypt hash."""
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except MissingBackendError:
+        logger.warning("bcrypt backend not available during verify; using pbkdf2_sha256 fallback")
+        return fallback_pwd_context.verify(plain_password, hashed_password)
 
 
 # ── JWT Helpers ───────────────────────────────────────────────────────────────
